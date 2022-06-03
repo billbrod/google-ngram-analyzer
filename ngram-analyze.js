@@ -36,6 +36,7 @@ function create_lineplot(data) {
                   .on("pointermove", pointermoved)
                   .on("pointerleave", pointerleft)
                   .on("touchstart", event => event.preventDefault());
+    $('#ngram-graph').children().remove()
 
     const X = d3.range(1500, 2020)
     const Y = d3.map(data, d => d.timeseries)
