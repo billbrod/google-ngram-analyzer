@@ -66,7 +66,7 @@ function create_lineplot(data) {
     const xScale = d3.scaleLinear(xDomain, [marginLeft, width - marginRight])
     const yScale = d3.scaleLinear(yDomain, [height - marginBottom, marginTop])
     const xAxis = d3.axisBottom(xScale).ticks(width / 50, 'd')
-    const yAxis = d3.axisLeft(yScale).ticks(height / 50, 'e')
+    const yAxis = d3.axisLeft(yScale).ticks(height / 50, 'p')
 
     const line = d3.map(d3.range(Y.length), j => d3.line()
                                                    .curve(d3.curveLinear)
@@ -116,7 +116,7 @@ function create_lineplot(data) {
         const yi = d3.least(d3.range(Y.length), j => Math.abs(yScale(Y[j][xi]) - ym))
         path.style("stroke", j => yi === j ? null : "#ddd").filter(j => j === yi).raise();
         dot.attr("transform", `translate(${xScale(X[xi])},${yScale(Y[yi][xi])})`);
-        if (T) dot.select("text").text(`${T[yi]}, ${X[xi]}: ${d3.format('.2e')(Y[yi][xi])}`);
+        if (T) dot.select("text").text(`${T[yi]}, ${X[xi]}: ${d3.format('.2p')(Y[yi][xi])}`);
         svg.property("value", O[yi]).dispatch("input", {bubbles: true});
     }
 
