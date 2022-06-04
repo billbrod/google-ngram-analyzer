@@ -96,6 +96,20 @@ function create_lineplot(data) {
        .attr('stroke', j => colors[j])
        .attr('id', j => `line_${j}`)
 
+    tgt_year = $('#target-year').val()
+    tgt_year_line = d3.line().curve(d3.curveLinear)
+                      .x(xScale(tgt_year))
+                      .y(i => yScale(yDomain[i]))
+    svg.append('path')
+       .attr('fill', 'none')
+       .attr("stroke-width", 1.5)
+       .attr("stroke-linecap", 'round')
+       .attr("stroke-linejoin", 'round')
+       .attr("stroke-opacity", 1)
+       .attr('stroke', '#000000')
+       .attr('d', tgt_year_line([0, 1]))
+       .attr('id', 'tgt_year_line')
+
     const dot = svg.append("g")
                    .attr("display", "none");
 
