@@ -12,21 +12,19 @@ function get_colors(data) {
 
 function create_background_rects(data) {
     colors = get_colors(data)
-    data.map((d, i) => d3.select(`#${d.ngram}`).attr('style', `background-color:${colors[i].replace(')', ', .8)')}`))
+    data.map((d, i) => d3.select(`#word_${i}`).attr('style', `background-color:${colors[i].replace(')', ', .8)')}`))
 
     function lock_input(elt) {
-        let word = $(elt).attr('id').replace('lock_check_', '')
+        let i = $(elt).attr('id').replace('lock_check_', '')
         let inputVal = document.getElementById($(elt).attr('id')).checked
         if (inputVal) {
-            d3.select(`#${word}`).attr('style', 'background-color:#999999')
-            d3.select(`#line_${word}`).attr('display', 'none')
+            d3.select(`#word_${i}`).attr('style', 'background-color:#999999')
+            d3.select(`#line_${i}`).attr('display', 'none')
         } else {
-            i = d3.select(`#${word}`).attr('class').replace(word + '_', '')
-            d3.select(`#${word}`).attr('style', `background-color:${colors[i].replace(')', ', .8)')}`)
-            d3.select(`#line_${word}`).attr('display', null)
+            d3.select(`#word_${i}`).attr('style', `background-color:${colors[i].replace(')', ', .8)')}`)
+            d3.select(`#line_${i}`).attr('display', null)
         }
     }
-
     d3.selectAll('.lock_check').on('click', function() { lock_input(this) })
 }
 
@@ -96,7 +94,7 @@ function create_lineplot(data) {
        .style("mix-blend-mode", 'multiply')
        .attr("d", j => line[j](I))
        .attr('stroke', j => colors[j])
-       .attr('id', j => `line_${T[j]}`)
+       .attr('id', j => `line_${j}`)
 
     const dot = svg.append("g")
                    .attr("display", "none");
@@ -148,8 +146,11 @@ function analyze_text() {
     // get all non-white space text
     paragraphs = text.split('\n').filter(t => t.trim() != '')
     $('#output-text').children().remove()
+    running_count = 0
     for (let t in paragraphs) {
-        $('#output-text').append('<p>' + paragraphs[t].match(/\b(\w+)'?(\w+)?\b/g).map((word, i) => `<input type='checkbox' class='lock_check' id='lock_check_${word}' name='lock_check_${word}'><span class='${word}_${i}' id=${word}>${word}</span>`).join(' ') + '</p>')
+        $('#output-text').append('<p>' + paragraphs[t].match(/\b(\w+)'?(\w+)?\b/g).map((word, i) => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${running_count+i}'><label for='lock_check_${running_count+i}' id=word_${running_count+i}>${word}</label></div>`).join(' ') + '</p>')
+        running_count += paragraphs[t].match(/\b(\w+)'?(\w+)?\b/g).length
+
     }
 
 }
