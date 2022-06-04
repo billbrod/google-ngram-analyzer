@@ -4,28 +4,37 @@ function get_tgt_idx() {
     return years.indexOf(Number(tgt_year))
 }
 
-function get_colors(data) {
-    tgt_idx = get_tgt_idx()
-    color = i => d3.interpolateReds(d3.scaleLinear().domain([0, d3.max(data.map(d => d.timeseries[tgt_idx]))]).range([1, 0])(i))
-    return data.map(d => color(d.timeseries[tgt_idx]))
+function get_colors_year_norm(data) {
+    colors = []
+    for (let yr in d3.range(1500, 2020)) {
+        color = i => d3.interpolateReds(d3.scaleLinear().domain([0, d3.max(data.map(d => d.timeseries[yr]))]).range([1, 0])(i))
+        color = data.map(d => color(d.timeseries[yr]))
+        colors.push(color)
+    }
+    return colors
 }
 
-function create_background_rects(data) {
-    colors = get_colors(data)
-    data.map((d, i) => d3.select(`#word_${i}`).attr('style', `background-color:${colors[i].replace(')', ', .8)')}`))
+function create_background_rects({
+    data = undefined,
+    colors = undefined,
+}) {
+    if (colors === undefined) {
+        colors = get_colors_year_norm(data)
 
-    function lock_input(elt) {
-        let i = $(elt).attr('id').replace('lock_check_', '')
-        let inputVal = document.getElementById($(elt).attr('id')).checked
-        if (inputVal) {
-            d3.select(`#word_${i}`).attr('style', 'background-color:#999999')
-            d3.select(`#line_${i}`).attr('display', 'none')
-        } else {
-            d3.select(`#word_${i}`).attr('style', `background-color:${colors[i].replace(')', ', .8)')}`)
-            d3.select(`#line_${i}`).attr('display', null)
+        function lock_input(elt) {
+            let i = $(elt).attr('id').replace('lock_check_', '')
+            let inputVal = document.getElementById($(elt).attr('id')).checked
+            if (inputVal) {
+                d3.select(`#word_${i}`).attr('style', 'background-color:#999999')
+                d3.select(`#line_${i}`).attr('display', 'none')
+            } else {
+                d3.select(`#word_${i}`).attr('style', `background-color:${colors[get_tgt_idx()][i].replace(')', ', .8)')}`)
+                d3.select(`#line_${i}`).attr('display', null)
+            }
         }
+        d3.selectAll('.lock_check').on('click', function() { lock_input(this) })
     }
-    d3.selectAll('.lock_check').on('click', function() { lock_input(this) })
+    colors[0].map((c, i) => d3.select(`#word_${i}`).attr('style', `background-color:${colors[get_tgt_idx()][i].replace(')', ', .8)')}`))
 }
 
 function create_lineplot(data) {
@@ -35,7 +44,7 @@ function create_lineplot(data) {
     marginBottom = 30, // bottom margin, in pixels
     marginLeft = 80, // left margin, in pixels
 
-    colors = get_colors(data)
+    colors = get_colors_year_norm(data)
 
     width = $('#output-text').width()
     height = $('#output-text').height()
@@ -93,14 +102,14 @@ function create_lineplot(data) {
      .join('path')
        .style("mix-blend-mode", 'multiply')
        .attr("d", j => line[j](I))
-       .attr('stroke', j => colors[j])
+       .attr('stroke', j => colors[get_tgt_idx()][j])
        .attr('id', j => `line_${j}`)
 
-    tgt_year = $('#target-year').val()
+    // the x function here is just a dummy so it gets re-run everytime
     tgt_year_line = d3.line().curve(d3.curveLinear)
-                      .x(xScale(tgt_year))
+                      .x(i => xScale($('#target-year').val()))
                       .y(i => yScale(yDomain[i]))
-    svg.append('path')
+    tgt_year_vert = svg.append('path')
        .attr('fill', 'none')
        .attr("stroke-width", 1.5)
        .attr("stroke-linecap", 'round')
@@ -109,6 +118,15 @@ function create_lineplot(data) {
        .attr('stroke', '#000000')
        .attr('d', tgt_year_line([0, 1]))
        .attr('id', 'tgt_year_line')
+
+    document.getElementById('target-year').addEventListener('change', move_line)
+    document.getElementById('target-year').addEventListener('change', function() {
+        create_background_rects({colors: colors})
+    })
+    function move_line(event) {
+        tgt_year_vert.attr('d', tgt_year_line([0, 1]))
+        path.attr('stroke', j => colors[get_tgt_idx()][j])
+    }
 
     const dot = svg.append("g")
                    .attr("display", "none");
@@ -154,7 +172,7 @@ function analyze_text() {
     words = words.join(',')
     ngram_url = `https://books.google.com/ngrams/json?content=${words}&year_start=1500&year_end=2019&corpus=26&smoothing=3`
     $.ajax({url: ngram_url, type: 'GET', dataType: 'jsonp'}).then(function(data) {
-        create_background_rects(data)
+        create_background_rects({data: data})
         create_lineplot(data)
     })
     // get all non-white space text
