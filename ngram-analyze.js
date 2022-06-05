@@ -105,27 +105,50 @@ function create_lineplot(data) {
        .attr('stroke', j => colors[get_tgt_idx()][j])
        .attr('id', j => `line_${j}`)
 
-    // the x function here is just a dummy so it gets re-run everytime
-    tgt_year_line = d3.line().curve(d3.curveLinear)
-                      .x(i => xScale($('#target-year').val()))
-                      .y(i => yScale(yDomain[i]))
-    tgt_year_vert = svg.append('path')
+    drag = d3.drag()
+             .on('drag', dragged)
+             .on('end', dragended)
+    tgt_year_vert = svg.append('line')
        .attr('fill', 'none')
-       .attr("stroke-width", 1.5)
+       .attr("stroke-width", 3)
        .attr("stroke-linecap", 'round')
        .attr("stroke-linejoin", 'round')
        .attr("stroke-opacity", 1)
        .attr('stroke', '#000000')
-       .attr('d', tgt_year_line([0, 1]))
        .attr('id', 'tgt_year_line')
+       .attr('x1', xScale($('#target-year').val()))
+       .attr('x2', xScale($('#target-year').val()))
+       .attr('y1', yScale(yDomain[0]))
+       .attr('y2', yScale(yDomain[1]))
+       .call(drag)
+       .on('click', clicked)
+
+    function clicked(event, d) {
+        if (event.defaultPrevented) return; // dragged
+    }
 
     document.getElementById('target-year').addEventListener('change', move_line)
     document.getElementById('target-year').addEventListener('change', function() {
         create_background_rects({colors: colors})
     })
+
     function move_line(event) {
-        tgt_year_vert.attr('d', tgt_year_line([0, 1]))
+        tgt_year_vert.attr('x1', xScale($('#target-year').val()))
+                     .attr('x2', xScale($('#target-year').val()))
         path.attr('stroke', j => colors[get_tgt_idx()][j])
+    }
+
+    function dragged(event, d) {
+        d3.select(this).raise().attr("x1", event.x).attr("x2", event.x)
+        new_yr = xScale.invert(event.x)
+        $('#target-year').val(new_yr)
+    }
+
+    function dragended(event, d) {
+        new_yr = Math.round(xScale.invert(event.x))
+        d3.select(this).raise().attr("x1", xScale(new_yr)).attr("x2", xScale(new_yr))
+        $('#target-year').val(new_yr)
+        $('#target-year').trigger('change')
     }
 
     const dot = svg.append("g")
