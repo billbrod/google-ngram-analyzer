@@ -14,12 +14,32 @@ function get_colors_year_norm(data) {
     return colors
 }
 
+function get_colors_thresh(data) {
+    colors = []
+    thresh = $('#thresh-value').val() / 100
+    scheme = d3.schemePaired
+    for (let yr in d3.range(1500, 2020)) {
+        color = data.map(d => d.timeseries[yr] == 0 ? scheme[5] : d.timeseries[yr] < thresh ? scheme[4] : scheme[2])
+        colors.push(color)
+    }
+    return colors
+}
+
+function get_colors(data) {
+    if (d3.select('#continuous').property('checked')) {
+        return get_colors_year_norm(data)
+    } else if (d3.select('#threshold').property('checked')) {
+        return get_colors_thresh(data)
+    }
+}
+
+
 function create_background_rects({
     data = undefined,
     colors = undefined,
 }) {
     if (colors === undefined) {
-        colors = get_colors_year_norm(data)
+        colors = get_colors(data)
 
         function lock_input(elt) {
             let i = $(elt).attr('id').replace('lock_check_', '')
@@ -44,7 +64,7 @@ function create_lineplot(data) {
     marginBottom = 30, // bottom margin, in pixels
     marginLeft = 80, // left margin, in pixels
 
-    colors = get_colors_year_norm(data)
+    colors = get_colors(data)
 
     width = $('#output-text').width()
     height = $('#output-text').height()
@@ -70,8 +90,10 @@ function create_lineplot(data) {
     yDomain = [0, d3.max(Y.map(y => d3.max(y)))]
 
     // construct scales and axes
-    const xScale = d3.scaleLinear(xDomain, [marginLeft, width - marginRight])
-    const yScale = d3.scaleLinear(yDomain, [height - marginBottom, marginTop])
+    const yRange = [height - marginBottom, marginTop]
+    const xRange = [marginLeft, width - marginRight]
+    const xScale = d3.scaleLinear(xDomain, xRange)
+    const yScale = d3.scaleLinear(yDomain, yRange)
     const xAxis = d3.axisBottom(xScale).ticks(width / 50, 'd')
     const yAxis = d3.axisLeft(yScale).ticks(height / 50, 'p')
 
@@ -105,10 +127,10 @@ function create_lineplot(data) {
        .attr('stroke', j => colors[get_tgt_idx()][j])
        .attr('id', j => `line_${j}`)
 
-    drag = d3.drag()
-             .on('drag', dragged)
-             .on('end', dragended)
-    tgt_year_vert = svg.append('line')
+    tgt_year_drag = d3.drag()
+                      .on('drag', tgt_year_dragged)
+                      .on('end', tgt_year_dragended)
+    tgt_year_line = svg.append('line')
        .attr('fill', 'none')
        .attr("stroke-width", 3)
        .attr("stroke-linecap", 'round')
@@ -120,35 +142,99 @@ function create_lineplot(data) {
        .attr('x2', xScale($('#target-year').val()))
        .attr('y1', yScale(yDomain[0]))
        .attr('y2', yScale(yDomain[1]))
-       .call(drag)
+       .call(tgt_year_drag)
+       .on('click', clicked)
+
+    thresh_drag = d3.drag()
+                    .on('drag', thresh_dragged)
+                    .on('end', thresh_dragended)
+    thresh_line = svg.append('line')
+       .attr('fill', 'none')
+       .attr("stroke-width", 3)
+       .attr("stroke-linecap", 'round')
+       .attr("stroke-linejoin", 'round')
+       .attr("stroke-opacity", 1)
+       .attr('stroke', '#000000')
+       .attr('id', 'thresh_line')
+       .attr('x1', xScale(xDomain[0]))
+       .attr('x2', xScale(xDomain[1]))
+       .attr('y1', yScale($('#thresh-value').val() / 100))
+       .attr('y2', yScale($('#thresh-value').val() / 100))
+       .call(thresh_drag)
        .on('click', clicked)
 
     function clicked(event, d) {
         if (event.defaultPrevented) return; // dragged
     }
 
-    document.getElementById('target-year').addEventListener('change', move_line)
-    document.getElementById('target-year').addEventListener('change', function() {
-        create_background_rects({colors: colors})
-    })
+    document.getElementById('target-year').addEventListener('change', move_tgt_year_line)
 
-    function move_line(event) {
-        tgt_year_vert.attr('x1', xScale($('#target-year').val()))
-                     .attr('x2', xScale($('#target-year').val()))
+    function move_tgt_year_line(event) {
+        min_yr = Number($('#target-year')[0].attributes.min.value)
+        max_yr = Number($('#target-year')[0].attributes.max.value)
+        new_yr = Math.min(Math.max($('#target-year').val(), min_yr), max_yr)
+        tgt_year_line.attr('x1', xScale(new_yr))
+                     .attr('x2', xScale(new_yr))
+        path.attr('stroke', j => colors[get_tgt_idx()][j])
+        create_background_rects({colors: colors})
+    }
+
+    function tgt_year_dragged(event, d) {
+        new_yr = Math.min(Math.max(event.x, d3.min(xRange)), d3.max(xRange))
+        d3.select(this).raise().attr("x1", new_yr).attr("x2", new_yr)
+        $('#target-year').val(xScale.invert(new_yr))
+    }
+
+    function tgt_year_dragended(event, d) {
+        min_yr = Number($('#target-year')[0].attributes.min.value)
+        max_yr = Number($('#target-year')[0].attributes.max.value)
+        new_yr = Math.round(xScale.invert(event.x))
+        new_yr = Math.min(Math.max(new_yr, 1500), 2019)
+        d3.select(this).raise().attr("x1", xScale(new_yr)).attr("x2", xScale(new_yr))
+        $('#target-year').val(new_yr)
+        $('#target-year')[0].dispatchEvent(new Event('change'))
+    }
+
+    document.getElementById('thresh-value').addEventListener('change', move_thresh_line)
+
+    function move_thresh_line(event) {
+        colors = get_colors_thresh(data)
+        create_background_rects({colors: colors})
+        thresh_line.attr('y1', yScale($('#thresh-value').val() / 100))
+                     .attr('y2', yScale($('#thresh-value').val() / 100))
         path.attr('stroke', j => colors[get_tgt_idx()][j])
     }
 
-    function dragged(event, d) {
-        d3.select(this).raise().attr("x1", event.x).attr("x2", event.x)
-        new_yr = xScale.invert(event.x)
-        $('#target-year').val(new_yr)
+    function thresh_dragged(event, d) {
+        new_y = Math.min(Math.max(event.y, d3.min(yRange)), d3.max(yRange))
+        d3.select(this).raise().attr("y1", new_y).attr("y2", new_y)
+        new_thresh = yScale.invert(new_y) * 100
+        $('#thresh-value').val(new_thresh)
     }
 
-    function dragended(event, d) {
-        new_yr = Math.round(xScale.invert(event.x))
-        d3.select(this).raise().attr("x1", xScale(new_yr)).attr("x2", xScale(new_yr))
-        $('#target-year').val(new_yr)
-        $('#target-year').trigger('change')
+    function thresh_dragended(event, d) {
+        new_y = Math.min(Math.max(event.y, d3.min(yRange)), d3.max(yRange))
+        new_thresh = yScale.invert(new_y).toFixed(5)
+        d3.select(this).raise().attr("y1", yScale(new_thresh)).attr("y2", yScale(new_thresh))
+        $('#thresh-value').val(new_thresh * 100)
+        $('#thresh-value')[0].dispatchEvent(new Event('change'))
+    }
+
+    document.getElementById('continuous').addEventListener('change', switch_to_continuous)
+    document.getElementById('threshold').addEventListener('change', switch_to_thresh)
+
+    function switch_to_continuous(event) {
+        $('#thresh-value').prop('disabled', true)
+        thresh_line.attr('display', 'none')
+        colors = get_colors(data)
+        $('#target-year')[0].dispatchEvent(new Event('change'))
+    }
+
+    function switch_to_thresh(event) {
+        $('#thresh-value').prop('disabled', false)
+        thresh_line.attr('display', null)
+        colors = get_colors(data)
+        $('#thresh-value')[0].dispatchEvent(new Event('change'))
     }
 
     const dot = svg.append("g")

@@ -39,8 +39,6 @@
          }
         </style>
     </head>
-    <!-- add ability to have a threshold view, where all words less common that a certain proportion are red, allow user to specify threshold,
-         add line to graph showing this amount and allow user to move that line -->
     <!-- add ability to change corpora and smoothing and case insensitive -->
     <!-- add ability to rescale axes? after adding / removing liens -->
     <!-- allow user to set whether color is normalized per target year or overall, and switch between the two -->
@@ -57,7 +55,12 @@
             <div>
                 <h2>Output:</h2>
                 <label for='target-year'>Target year (1500 to 2019): </label>
-                <input type="number" min="1500" max="2019" step="1" value="1800" id='target-year'/>
+                <input type="number" min="1500" max="2019" step="1" value="1800" id='target-year'/><br>
+                <input type="radio" id='continuous' name='color' checked/>
+                <label for='continuous'>Continuous</label>
+                <input type="radio" id='threshold' name='color'/>
+                <label for='threshold'>Threshold</label>
+                <input type="number" min="0" step=".01" value=".5" id='thresh-value' />
             </div>
             <div id='output-text'></div>
             <h2>Graph:</h2>
