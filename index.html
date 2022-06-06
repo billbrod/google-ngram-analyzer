@@ -44,11 +44,12 @@
     <!-- allow user to set whether color is normalized per target year or overall, and switch between the two -->
     <!-- super common words (is,a,of) swamp the effect of even reasonably common nouns (e.g., carriage). decide how to do deal with that.
          add an upper bound? or remove N most common words? -->
-    <!-- figure out how to do bigrams etc easily -->
     <body>
         <div class='grid-container'>
             <div>
                 <h2>Input:</h2>
+                <p>Enter your text below for ngram analysis. Use <tt>+</tt> to connect phrases (e.g., <tt>is not</tt> will
+                search for is and not separately, while <tt>is+not</tt> will search for them as a single bigram).</p>
                 <button onclick='analyze_text()'>Run Ngram Analysis</button>
             </div>
             <textarea placeholder='Enter text here' id='input-text'></textarea>

@@ -277,7 +277,7 @@ function create_lineplot(data) {
 function analyze_text() {
     text = $('#input-text').val()
     // break into words, see https://stackoverflow.com/a/36508315
-    words = text.match(/\b(\w+)'?(\w+)?\b/g)
+    words = text.match(/\b([\w+]+)'?([\w+]+)?\b/g)
     words = words.join(',')
     ngram_url = `https://books.google.com/ngrams/json?content=${words}&year_start=1500&year_end=2019&corpus=26&smoothing=3`
     $.ajax({url: ngram_url, type: 'GET', dataType: 'jsonp'}).then(function(data) {
@@ -289,8 +289,8 @@ function analyze_text() {
     $('#output-text').children().remove()
     running_count = 0
     for (let t in paragraphs) {
-        $('#output-text').append('<p>' + paragraphs[t].match(/\b(\w+)'?(\w+)?\b/g).map((word, i) => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${running_count+i}'><label for='lock_check_${running_count+i}' id=word_${running_count+i}>${word}</label></div>`).join(' ') + '</p>')
-        running_count += paragraphs[t].match(/\b(\w+)'?(\w+)?\b/g).length
+        $('#output-text').append('<p>' + paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).map((word, i) => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${running_count+i}'><label for='lock_check_${running_count+i}' id=word_${running_count+i}>${word.replaceAll('+', ' ')}</label></div>`).join(' ') + '</p>')
+        running_count += paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).length
 
     }
 
