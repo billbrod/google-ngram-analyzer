@@ -24,11 +24,20 @@
          button {
              margin-bottom: 10px;
          }
+         select {
+             margin-bottom: 10px;
+         }
          .switch {
              display: inline;
          }
          .switch input {
              display: none;
+         }
+         .unclicked {
+             background: #eaeaea;
+         }
+         .clicked {
+             background: #999999;
          }
          .switch label {
              width: 100%;
@@ -51,6 +60,14 @@
                 <p>Enter your text below for ngram analysis. Use <tt>+</tt> to connect phrases (e.g., <tt>is not</tt> will
                 search for is and not separately, while <tt>is+not</tt> will search for them as a single bigram).</p>
                 <button onclick='analyze_text()'>Run Ngram Analysis</button>
+                <select name='corpora' id='corpora'>
+                    <option value=26>English (2019)</option>
+                    <option value=29>British English (2019)</option>
+                    <option value=28>American English (2019)</option>
+                    <option value=27>English Fiction (2019)</option>
+                </select>
+                <select name='smoothing' id='smoothing'></select>
+                <div class='switch'><input type='checkbox' id='case'><label for='case' id='case_label' class='unclicked'>Case-Insensitive</label></div>
             </div>
             <textarea placeholder='Enter text here' id='input-text'></textarea>
             <div>
@@ -68,4 +85,22 @@
             <svg id='ngram-graph'></svg>
         </div>
     </body>
+    <script>
+     vals = d3.range(10).concat(d3.range(10, 51, 10))
+     for (let i in vals) {
+         var opt = $('<option/>')
+         opt.attr({'value': vals[i]}).text(`Smoothing of ${vals[i]}`);
+         $('#smoothing').append(opt);
+     }
+     $('#smoothing').val(3)
+     function click_case_button() {
+         let clicked = document.getElementById('case').checked;
+         if (clicked) {
+             d3.select('#case_label').attr('class', 'clicked')
+         } else {
+             d3.select('#case_label').attr('class', 'unclicked')
+         }
+     }
+     d3.select('#case').on('click', () => click_case_button())
+    </script>
 </html>

@@ -279,7 +279,13 @@ function analyze_text() {
     // break into words, see https://stackoverflow.com/a/36508315
     words = text.match(/\b([\w+]+)'?([\w+]+)?\b/g)
     words = words.join(',')
-    ngram_url = `https://books.google.com/ngrams/json?content=${words}&year_start=1500&year_end=2019&corpus=26&smoothing=3`
+    if (document.getElementById('case').checked) {
+        var case_str = '&case_insensitive=true'
+    } else {
+        var case_str = ''
+    }
+    ngram_url = `https://books.google.com/ngrams/json?content=${words}&year_start=1500&year_end=2019&corpus=${$('#corpora').val()}&smoothing=${$('#smoothing').val()}${case_str}`
+    console.log(ngram_url)
     $.ajax({url: ngram_url, type: 'GET', dataType: 'jsonp'}).then(function(data) {
         create_background_rects({data: data})
         create_lineplot(data)
