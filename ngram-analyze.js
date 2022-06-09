@@ -287,6 +287,9 @@ function analyze_text() {
     ngram_url = `https://books.google.com/ngrams/json?content=${words}&year_start=1500&year_end=2019&corpus=${$('#corpora').val()}&smoothing=${$('#smoothing').val()}${case_str}`
     console.log(ngram_url)
     $.ajax({url: ngram_url, type: 'GET', dataType: 'jsonp'}).then(function(data) {
+        if (document.getElementById('case').checked) {
+            data = data.filter(d => d.ngram.indexOf('(All)') > -1)
+        }
         create_background_rects({data: data})
         create_lineplot(data)
     })
