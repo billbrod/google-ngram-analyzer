@@ -161,6 +161,7 @@ function create_lineplot(data) {
        .attr('y1', yScale($('#thresh-value').val() / 100))
        .attr('y2', yScale($('#thresh-value').val() / 100))
        .call(thresh_drag)
+       .attr('display', d3.select('#continuous').property('checked') ? 'none': null)
        .on('click', clicked)
 
     function clicked(event, d) {
@@ -201,7 +202,7 @@ function create_lineplot(data) {
         colors = get_colors_thresh(data)
         create_background_rects({colors: colors})
         thresh_line.attr('y1', yScale($('#thresh-value').val() / 100))
-                     .attr('y2', yScale($('#thresh-value').val() / 100))
+                   .attr('y2', yScale($('#thresh-value').val() / 100))
         path.attr('stroke', j => colors[get_tgt_idx()][j])
     }
 
@@ -288,6 +289,7 @@ function analyze_text() {
     console.log(ngram_url)
     $.ajax({url: ngram_url, type: 'GET', dataType: 'jsonp'}).then(function(data) {
         if (document.getElementById('case').checked) {
+            // filter out the case sensitive versions
             data = data.filter(d => d.ngram.indexOf('(All)') > -1)
         }
         create_background_rects({data: data})
