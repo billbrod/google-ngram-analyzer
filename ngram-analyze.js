@@ -97,7 +97,7 @@ function create_lineplot(data) {
     const xAxis = d3.axisBottom(xScale).ticks(width / 50, 'd')
     const yAxis = d3.axisLeft(yScale).ticks(height / 50, 'p')
 
-    const line = d3.map(d3.range(Y.length), j => d3.line()
+    var line = d3.map(d3.range(Y.length), j => d3.line()
                                                    .curve(d3.curveLinear)
                                                    .x(i => xScale(X[i]))
                                                    .y(i => yScale(Y[j][i])))
@@ -105,7 +105,7 @@ function create_lineplot(data) {
     svg.append("g")
        .attr("transform", `translate(0,${height-marginBottom})`)
        .call(xAxis);
-    svg.append("g")
+    const gy = svg.append("g")
        .attr("transform", `translate(${marginLeft},0)`)
        .call(yAxis)
        .call(g => g.select(".domain").remove())
@@ -163,6 +163,24 @@ function create_lineplot(data) {
        .call(thresh_drag)
        .attr('display', d3.select('#continuous').property('checked') ? 'none': null)
        .on('click', clicked)
+
+    // based on https://observablehq.com/@d3/pan-zoom-axes?collection=@d3/d3-zoom
+    const zoom = d3.zoom()
+                   .scaleExtent([1, 10])
+                   .translateExtent([[marginLeft, marginTop], [width - marginRight, height - marginBottom]])
+                   .extent([[marginLeft, marginTop], [width - marginRight, height - marginBottom]])
+                   .on('zoom', zoomed)
+    function zoomed({ transform }) {
+        // position is off, but values are right
+        // console.log(yRange.map(d => transform.applyY(d)))
+        yScale.range(yRange.map(d => transform.applyY(d)))
+        yAxis.scale(yScale)
+        line = line.map((l, j) => l.y(i => yScale(Y[j][i])))
+        path.attr('d', j => line[j](I))
+        thresh_line.attr('y1', yScale($('#thresh-value').val() / 100))
+                   .attr('y2', yScale($('#thresh-value').val() / 100))
+        gy.call(yAxis)
+    }
 
     function clicked(event, d) {
         if (event.defaultPrevented) return; // dragged
@@ -272,7 +290,7 @@ function create_lineplot(data) {
         svg.dispatch("input", {bubbles: true});
     }
 
-    return svg.node()
+    return svg.call(zoom).node()
 }
 
 function analyze_text() {
@@ -286,7 +304,6 @@ function analyze_text() {
         var case_str = ''
     }
     ngram_url = `https://books.google.com/ngrams/json?content=${words}&year_start=1500&year_end=2019&corpus=${$('#corpora').val()}&smoothing=${$('#smoothing').val()}${case_str}`
-    console.log(ngram_url)
     $.ajax({url: ngram_url, type: 'GET', dataType: 'jsonp'}).then(function(data) {
         if (document.getElementById('case').checked) {
             // filter out the case sensitive versions
