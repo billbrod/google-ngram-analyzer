@@ -95,7 +95,20 @@ function create_lineplot(data) {
     const xScale = d3.scaleLinear(xDomain, xRange)
     const yScale = d3.scaleLinear(yDomain, yRange)
     const xAxis = d3.axisBottom(xScale).ticks(width / 50, 'd')
-    const yAxis = d3.axisLeft(yScale).ticks(height / 50, 'p')
+    // we make this a function, inspired by
+    // https://observablehq.com/@d3/zoomable-area-chart?collection=@d3/d3-zoom
+    const yAxis = (g, y) => g
+       .attr("transform", `translate(${marginLeft},0)`)
+       .call(d3.axisLeft(y).ticks(height / 50, 'p'))
+
+    // this prevents the lines from going below the x axis
+    svg.append('clipPath')
+         .attr('id', 'clip')
+       .append('rect')
+       .attr('x', -marginLeft)
+       .attr('y', 0)
+       .attr('width', width - marginRight)
+       .attr('height', height - marginBottom)
 
     var line = d3.map(d3.range(Y.length), j => d3.line()
                                                    .curve(d3.curveLinear)
@@ -105,9 +118,8 @@ function create_lineplot(data) {
     svg.append("g")
        .attr("transform", `translate(0,${height-marginBottom})`)
        .call(xAxis);
-    const gy = svg.append("g")
-       .attr("transform", `translate(${marginLeft},0)`)
-       .call(yAxis)
+    const gy = svg.append('g')
+       .call(yAxis, yScale)
        .call(g => g.select(".domain").remove())
        .call(g => g.selectAll(".tick line").clone()
                    .attr("x2", width - marginLeft - marginRight)
@@ -126,6 +138,7 @@ function create_lineplot(data) {
        .attr("d", j => line[j](I))
        .attr('stroke', j => colors[get_tgt_idx()][j])
        .attr('id', j => `line_${j}`)
+       .attr('clip-path', "url(#clip)")
 
     tgt_year_drag = d3.drag()
                       .on('drag', tgt_year_dragged)
@@ -171,15 +184,14 @@ function create_lineplot(data) {
                    .extent([[marginLeft, marginTop], [width - marginRight, height - marginBottom]])
                    .on('zoom', zoomed)
     function zoomed({ transform }) {
-        // position is off, but values are right
-        // console.log(yRange.map(d => transform.applyY(d)))
-        yScale.range(yRange.map(d => transform.applyY(d)))
-        yAxis.scale(yScale)
-        line = line.map((l, j) => l.y(i => yScale(Y[j][i])))
+        // for some reason, this use of rescaleY prevents y axis from going
+        // below x axis
+        newY = transform.rescaleY(yScale)
+        line = line.map((l, j) => l.y(i => newY(Y[j][i])))
         path.attr('d', j => line[j](I))
         thresh_line.attr('y1', yScale($('#thresh-value').val() / 100))
                    .attr('y2', yScale($('#thresh-value').val() / 100))
-        gy.call(yAxis)
+        gy.call(yAxis, newY)
     }
 
     function clicked(event, d) {
