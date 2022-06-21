@@ -45,16 +45,16 @@ function create_background_rects({
             let i = $(elt).attr('id').replace('lock_check_', '')
             let inputVal = document.getElementById($(elt).attr('id')).checked
             if (inputVal) {
-                d3.select(`#word_${i}`).attr('style', 'background-color:#999999')
+                d3.selectAll(`#word_${i}`).attr('style', 'background-color:#999999')
                 d3.select(`#line_${i}`).attr('display', 'none')
             } else {
-                d3.select(`#word_${i}`).attr('style', `background-color:${colors[get_tgt_idx()][i].replace(')', ', .8)')}`)
+                d3.selectAll(`#word_${i}`).attr('style', `background-color:${colors[get_tgt_idx()][i].replace(')', ', .8)')}`)
                 d3.select(`#line_${i}`).attr('display', null)
             }
         }
         d3.selectAll('.lock_check').on('click', function() { lock_input(this) })
     }
-    colors[0].map((c, i) => d3.select(`#word_${i}`).attr('style', `background-color:${colors[get_tgt_idx()][i].replace(')', ', .8)')}`))
+    colors[0].map((c, i) => d3.selectAll(`#word_${i}`).attr('style', `background-color:${colors[get_tgt_idx()][i].replace(')', ', .8)')}`))
 }
 
 function create_lineplot(data) {
@@ -309,13 +309,14 @@ function analyze_text() {
     text = $('#input-text').val()
     // break into words, see https://stackoverflow.com/a/36508315
     words = text.match(/\b([\w+]+)'?([\w+]+)?\b/g)
-    words = words.join(',')
+    // remove duplicates from array of words
+    words = [...new Set(words)]
     if (document.getElementById('case').checked) {
         var case_str = '&case_insensitive=true'
     } else {
         var case_str = ''
     }
-    ngram_url = `https://books.google.com/ngrams/json?content=${words}&year_start=1500&year_end=2019&corpus=${$('#corpora').val()}&smoothing=${$('#smoothing').val()}${case_str}`
+    ngram_url = `https://books.google.com/ngrams/json?content=${words.join(',')}&year_start=1500&year_end=2019&corpus=${$('#corpora').val()}&smoothing=${$('#smoothing').val()}${case_str}`
     $.ajax({url: ngram_url, type: 'GET', dataType: 'jsonp'}).then(function(data) {
         if (document.getElementById('case').checked) {
             // filter out the case sensitive versions
@@ -327,11 +328,10 @@ function analyze_text() {
     // get all non-white space text
     paragraphs = text.split('\n').filter(t => t.trim() != '')
     $('#output-text').children().remove()
-    running_count = 0
+    // running_count = 0
     for (let t in paragraphs) {
-        $('#output-text').append('<p>' + paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).map((word, i) => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${running_count+i}'><label for='lock_check_${running_count+i}' id=word_${running_count+i}>${word.replaceAll('+', ' ')}</label></div>`).join(' ') + '</p>')
-        running_count += paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).length
-
+        $('#output-text').append('<p>' + paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).map(word => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${words.indexOf(word)}'><label for='lock_check_${words.indexOf(word)}' id=word_${words.indexOf(word)}>${word.replaceAll('+', ' ')}</label></div>`).join(' ') + '</p>')
+        // $('#output-text').append('<p>' + paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).map((word, i) => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${running_count+i}'><label for='lock_check_${running_count+i}' id=word_${running_count+i}>${word.replaceAll('+', ' ')}</label></div>`).join(' ') + '</p>')
+        // running_count += paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).length
     }
-
 }
