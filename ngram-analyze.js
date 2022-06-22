@@ -213,8 +213,8 @@ function create_lineplot(data) {
         newY = transform.rescaleY(yScale)
         line = line.map((l, j) => l.y(i => newY(Y[j][i])))
         path.attr('d', j => line[j](I))
-        thresh_line.attr('y1', yScale($('#thresh-value').val() / 100))
-                   .attr('y2', yScale($('#thresh-value').val() / 100))
+        thresh_line.attr('y1', newY($('#thresh-value').val() / 100))
+                   .attr('y2', newY($('#thresh-value').val() / 100))
         gy.call(yAxis, newY)
     }
 
