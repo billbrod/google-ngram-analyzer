@@ -129,10 +129,11 @@ function create_lineplot(data) {
     svg.append('clipPath')
          .attr('id', 'clip')
        .append('rect')
-       .attr('x', -marginLeft)
+       .attr('x', marginLeft)
        .attr('y', 0)
-       .attr('width', width - marginRight)
+       .attr('width', width - marginRight - marginLeft)
        .attr('height', height - marginBottom)
+
 
     var line = d3.map(d3.range(Y.length), j => d3.line()
                                                    .curve(d3.curveLinear)
