@@ -228,6 +228,9 @@ function create_lineplot(data) {
     }
 
     document.getElementById('thresh-value').addEventListener('change', move_thresh_line)
+    if (d3.select('#continuous').property('checked')) {
+        $('#thresh-value').prop('disabled', true)
+    }
 
     function move_thresh_line(event) {
         colors = get_colors_thresh(data)
@@ -329,10 +332,7 @@ function analyze_text() {
     // get all non-white space text
     paragraphs = text.split('\n').filter(t => t.trim() != '')
     $('#output-text').children().remove()
-    // running_count = 0
     for (let t in paragraphs) {
         $('#output-text').append('<p>' + paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).map(word => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${words.indexOf(word)}'><label for='lock_check_${words.indexOf(word)}' id=word_${words.indexOf(word)}>${word.replaceAll('+', ' ')}</label></div>`).join(' ') + '</p>')
-        // $('#output-text').append('<p>' + paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).map((word, i) => `<div class='switch'><input type='checkbox' class='lock_check' id='lock_check_${running_count+i}'><label for='lock_check_${running_count+i}' id=word_${running_count+i}>${word.replaceAll('+', ' ')}</label></div>`).join(' ') + '</p>')
-        // running_count += paragraphs[t].match(/\b([\w+]+)'?([\w+]+)?\b/g).length
     }
 }
