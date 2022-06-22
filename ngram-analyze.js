@@ -44,6 +44,7 @@ function create_background_rects({
         function lock_input(elt) {
             let i = $(elt).attr('id').replace('lock_check_', '')
             let inputVal = document.getElementById($(elt).attr('id')).checked
+            let colors = get_colors(data)
             if (inputVal) {
                 d3.selectAll(`#word_${i}`).attr('style', 'background-color:#999999')
                 d3.select(`#line_${i}`).attr('display', 'none')
