@@ -1,3 +1,25 @@
+function select_boxes(elt) {
+    if ($(elt).attr('id') == 'select-all') {
+        d3.selectAll('.lock_check').property('checked', true)
+        $('.lock_check').trigger('click')
+    } else if ($(elt).attr('id') == 'select-none') {
+        d3.selectAll('.lock_check').property('checked', false)
+        $('.lock_check').trigger('click')
+    } else if ($(elt).attr('id') == 'select-below') {
+        thresh = $('#thresh-value').val() / 100
+        // see https://stackoverflow.com/a/52146768 for why the n[i] is necessary
+        d3.selectAll('.lock_check').filter((_, i, n) => Number(d3.select(n[i]).attr('timeseries').split(',')[get_tgt_idx()]) < thresh).property('checked', true)
+        d3.selectAll('.lock_check').filter((_, i, n) => Number(d3.select(n[i]).attr('timeseries').split(',')[get_tgt_idx()]) > thresh).property('checked', false)
+        $('.lock_check').trigger('click')
+    } else if ($(elt).attr('id') == 'select-above') {
+        thresh = $('#thresh-value').val() / 100
+        // see https://stackoverflow.com/a/52146768 for why the n[i] is necessary
+        d3.selectAll('.lock_check').filter((_, i, n) => Number(d3.select(n[i]).attr('timeseries').split(',')[get_tgt_idx()]) < thresh).property('checked', false)
+        d3.selectAll('.lock_check').filter((_, i, n) => Number(d3.select(n[i]).attr('timeseries').split(',')[get_tgt_idx()]) > thresh).property('checked', true)
+        $('.lock_check').trigger('click')
+    }
+}
+
 function get_tgt_idx() {
     tgt_year = $('#target-year').val()
     years = d3.range(1500, 2020)
@@ -40,6 +62,7 @@ function create_background_rects({
 }) {
     if (colors === undefined) {
         colors = get_colors(data)
+        data.map((d, i) => d3.selectAll(`#lock_check_${i}`).attr('timeseries', d.timeseries))
 
         function lock_input(elt) {
             let i = $(elt).attr('id').replace('lock_check_', '')

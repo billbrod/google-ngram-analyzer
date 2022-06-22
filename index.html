@@ -27,6 +27,9 @@
          select {
              margin-bottom: 10px;
          }
+         input {
+             margin-bottom: 10px;
+         }
          .switch {
              display: inline;
          }
@@ -52,6 +55,8 @@
     <!-- allow user to set whether color is normalized per target year or overall, and switch between the two -->
     <!-- super common words (is,a,of) swamp the effect of even reasonably common nouns (e.g., carriage). decide how to do deal with that.
          add an upper bound? or remove N most common words? -->
+    <!-- I think just allow user to select: all, none, all above/below some threshold. and by paragraph -->
+    <!-- list fo most common English words: https://github.com/first20hours/google-10000-english -->
     <body>
         <div class='grid-container'>
             <div>
@@ -72,12 +77,19 @@
             <div>
                 <h2>Output:</h2>
                 <label for='target-year'>Target year (1500 to 2019): </label>
-                <input type="number" min="1500" max="2019" step="1" value="1800" id='target-year'/><br>
+                <input type="number" min="1500" max="2019" step="1" value="1800" id='target-year'/>
+                <br>
                 <input type="radio" id='continuous' name='color' checked/>
                 <label for='continuous'>Continuous</label>
                 <input type="radio" id='threshold' name='color'/>
                 <label for='threshold'>Threshold</label>
-                <input type="number" min="0" step=".01" value=".5" id='thresh-value' />
+                <input type="number" min="0" step=".01" value=".5" id='thresh-value'/>
+                <br>
+                <label for='select-all'>Select: </label>
+                <button id='select-all' onclick='select_boxes(this)'>All</button>
+                <button id='select-none' onclick='select_boxes(this)'>None</button>
+                <button id='select-below' onclick='select_boxes(this)'>Below thresh</button>
+                <button id='select-above' onclick='select_boxes(this)'>Above thresh</button>
             </div>
             <div id='output-text'></div>
             <h2>Graph:</h2>
