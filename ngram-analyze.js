@@ -99,7 +99,6 @@ function create_lineplot(data) {
                   .attr('viewBox', [0, 0, width, height])
                   .style("-webkit-tap-highlight-color", "transparent")
                   .on("pointerenter", pointerentered)
-                  .on("pointermove", pointermoved)
                   .on("pointerleave", pointerleft)
                   .on("touchstart", event => event.preventDefault());
     $('#ngram-graph').children().remove()
@@ -183,9 +182,6 @@ function create_lineplot(data) {
        .call(tgt_year_drag)
        .on('click', clicked)
 
-    thresh_drag = d3.drag()
-                    .on('drag', thresh_dragged)
-                    .on('end', thresh_dragended)
     thresh_line = svg.append('line')
        .attr('fill', 'none')
        .attr("stroke-width", 3)
@@ -198,9 +194,9 @@ function create_lineplot(data) {
        .attr('x2', xScale(xDomain[1]))
        .attr('y1', yScale($('#thresh-value').val() / 100))
        .attr('y2', yScale($('#thresh-value').val() / 100))
-       .call(thresh_drag)
        .attr('display', d3.select('#continuous').property('checked') ? 'none': null)
        .on('click', clicked)
+       .attr('clip-path', "url(#clip)")
 
     // based on https://observablehq.com/@d3/pan-zoom-axes?collection=@d3/d3-zoom
     const zoom = d3.zoom()
@@ -217,6 +213,7 @@ function create_lineplot(data) {
         thresh_line.attr('y1', newY($('#thresh-value').val() / 100))
                    .attr('y2', newY($('#thresh-value').val() / 100))
         gy.call(yAxis, newY)
+        define_yscale_funcs(newY)
     }
 
     function clicked(event, d) {
@@ -251,33 +248,62 @@ function create_lineplot(data) {
         $('#target-year')[0].dispatchEvent(new Event('change'))
     }
 
-    document.getElementById('thresh-value').addEventListener('change', move_thresh_line)
     if (d3.select('#continuous').property('checked')) {
         $('#thresh-value').prop('disabled', true)
     }
 
-    function move_thresh_line(event) {
-        colors = get_colors_thresh(data)
-        create_background_rects({colors: colors})
-        thresh_line.attr('y1', yScale($('#thresh-value').val() / 100))
-                   .attr('y2', yScale($('#thresh-value').val() / 100))
-        path.attr('stroke', j => colors[get_tgt_idx()][j])
+    // this needs to be a separate metafunction, because we need to updatethe
+    // yScale for each of these functions on zoom (and event listeners can't be
+    // passed extra parameters)
+    function define_yscale_funcs(y) {
+        function move_thresh_line(event) {
+            colors = get_colors_thresh(data)
+            create_background_rects({colors: colors})
+            thresh_line.attr('y1', y($('#thresh-value').val() / 100))
+                       .attr('y2', y($('#thresh-value').val() / 100))
+            path.attr('stroke', j => colors[get_tgt_idx()][j])
+        }
+
+        function thresh_dragged(event, d) {
+            new_y = Math.min(Math.max(event.y, d3.min(yRange)), d3.max(yRange))
+            d3.select(this).raise().attr("y1", new_y).attr("y2", new_y)
+            new_thresh = y.invert(new_y) * 100
+            $('#thresh-value').val(new_thresh)
+        }
+
+        function thresh_dragended(event, d) {
+            new_y = Math.min(Math.max(event.y, d3.min(yRange)), d3.max(yRange))
+            new_thresh = y.invert(new_y).toFixed(5)
+            d3.select(this).raise().attr("y1", y(new_thresh)).attr("y2", y(new_thresh))
+            $('#thresh-value').val(new_thresh * 100)
+            $('#thresh-value')[0].dispatchEvent(new Event('change'))
+        }
+
+        function pointermoved(event) {
+            pointerentered()
+            const [xm, ym] = d3.pointer(event);
+            const xi = d3.least(I, i => Math.abs(xScale(X[i]) - xm))
+            const yi = d3.least(d3.range(Y.length), j => Math.abs(y(Y[j][xi]) - ym))
+            if (y(Y[yi][xi]) < height - marginBottom) {
+                path.style("stroke", j => yi === j ? null : "#ddd").filter(j => j === yi).raise();
+                dot.attr("transform", `translate(${xScale(X[xi])},${y(Y[yi][xi])})`);
+                if (T) dot.select("text").text(`${T[yi]}, ${X[xi]}: ${d3.format('.2p')(Y[yi][xi])}`);
+                svg.property("value", O[yi]).dispatch("input", {bubbles: true});
+            } else {
+                pointerleft()
+            }
+        }
+
+        document.getElementById('thresh-value').addEventListener('change', move_thresh_line)
+        thresh_drag = d3.drag()
+                        .on('drag', thresh_dragged)
+                        .on('end', thresh_dragended)
+        thresh_line.call(thresh_drag)
+        svg.on("pointermove", pointermoved)
+
     }
 
-    function thresh_dragged(event, d) {
-        new_y = Math.min(Math.max(event.y, d3.min(yRange)), d3.max(yRange))
-        d3.select(this).raise().attr("y1", new_y).attr("y2", new_y)
-        new_thresh = yScale.invert(new_y) * 100
-        $('#thresh-value').val(new_thresh)
-    }
-
-    function thresh_dragended(event, d) {
-        new_y = Math.min(Math.max(event.y, d3.min(yRange)), d3.max(yRange))
-        new_thresh = yScale.invert(new_y).toFixed(5)
-        d3.select(this).raise().attr("y1", yScale(new_thresh)).attr("y2", yScale(new_thresh))
-        $('#thresh-value').val(new_thresh * 100)
-        $('#thresh-value')[0].dispatchEvent(new Event('change'))
-    }
+    define_yscale_funcs(yScale)
 
     document.getElementById('continuous').addEventListener('change', switch_to_continuous)
     document.getElementById('threshold').addEventListener('change', switch_to_thresh)
@@ -297,7 +323,7 @@ function create_lineplot(data) {
     }
 
     const dot = svg.append("g")
-                   .attr("display", "none");
+                   .attr("display", "none")
 
     dot.append("circle")
        .attr("r", 2.5);
@@ -307,16 +333,6 @@ function create_lineplot(data) {
        .attr("font-size", 10)
        .attr("text-anchor", "middle")
        .attr("y", -8);
-
-    function pointermoved(event) {
-        const [xm, ym] = d3.pointer(event);
-        const xi = d3.least(I, i => Math.abs(xScale(X[i]) - xm))
-        const yi = d3.least(d3.range(Y.length), j => Math.abs(yScale(Y[j][xi]) - ym))
-        path.style("stroke", j => yi === j ? null : "#ddd").filter(j => j === yi).raise();
-        dot.attr("transform", `translate(${xScale(X[xi])},${yScale(Y[yi][xi])})`);
-        if (T) dot.select("text").text(`${T[yi]}, ${X[xi]}: ${d3.format('.2p')(Y[yi][xi])}`);
-        svg.property("value", O[yi]).dispatch("input", {bubbles: true});
-    }
 
     function pointerentered() {
         path.style("mix-blend-mode", null).style("stroke", "#ddd");
